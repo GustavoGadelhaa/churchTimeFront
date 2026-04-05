@@ -44,11 +44,10 @@ export const routes: Routes = [
       },
       {
         path: 'groups',
-        canActivate: [roleGuard],
-        data: { roles: ['ADMIN', 'LEADER'] },
+        canActivate: [authGuard],
         children: [
           { path: '', loadComponent: () => import('./features/groups/group-list/group-list.component').then(m => m.GroupListComponent) },
-          { path: 'new', loadComponent: () => import('./features/groups/group-form/group-form.component').then(m => m.GroupFormComponent) },
+          { path: 'new', canActivate: [roleGuard], data: { roles: ['ADMIN', 'LEADER'] }, loadComponent: () => import('./features/groups/group-form/group-form.component').then(m => m.GroupFormComponent) },
           { path: ':id', loadComponent: () => import('./features/groups/group-detail/group-detail.component').then(m => m.GroupDetailComponent) }
         ]
       },

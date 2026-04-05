@@ -53,7 +53,7 @@ export class SidebarComponent {
     const allItems: NavItem[] = [
       { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
       { label: 'Igrejas', path: '/churches', icon: 'church', roles: ['ADMIN'] },
-      { label: 'Grupos', path: '/groups', icon: 'groups', roles: ['ADMIN', 'LEADER'] },
+      { label: 'Grupos', path: '/groups', icon: 'groups', roles: ['ADMIN', 'LEADER', 'MEMBER'] },
       { label: 'Usuários', path: '/users', icon: 'people', roles: ['ADMIN'] },
       { label: 'Eventos', path: '/events', icon: 'event', roles: ['ADMIN', 'LEADER'] },
       { label: 'Check-in', path: '/presence/checkin', icon: 'check_circle' }

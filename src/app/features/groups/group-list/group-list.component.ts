@@ -1,9 +1,10 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { GroupService } from '../../../core/services/group.service';
 import { GroupResponse } from '../../../shared/models/group.models';
 import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-group-list',
@@ -12,16 +13,18 @@ import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 class="text-2xl font-bold text-foreground">Grupos</h1>
-          <p class="text-muted-foreground mt-1">Células, ministérios e grupos</p>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold text-foreground">Grupos</h1>
+            <p class="text-muted-foreground mt-1">Células, ministérios e grupos</p>
+          </div>
+          @if (canCreate()) {
+            <a routerLink="/groups/new" class="inline-flex items-center gap-2 rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              <span class="material-icons text-lg">add</span>
+              Novo Grupo
+            </a>
+          }
         </div>
-        <a routerLink="/groups/new" class="inline-flex items-center gap-2 rounded-md text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-          <span class="material-icons text-lg">add</span>
-          Novo Grupo
-        </a>
-      </div>
 
       @if (loading()) {
         <div class="flex justify-center py-12">
@@ -79,8 +82,14 @@ import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
 })
 export class GroupListComponent {
   private groupService = inject(GroupService);
+  private authService = inject(AuthService);
   groups = signal<GroupResponse[]>([]);
   loading = signal(false);
+
+  canCreate = computed(() => {
+    const role = this.authService.getUserRole();
+    return role === 'ADMIN' || role === 'LEADER';
+  });
 
   constructor() {
     this.load();

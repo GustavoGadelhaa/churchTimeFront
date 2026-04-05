@@ -1,9 +1,10 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, ChangeDetectionStrategy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { GroupService } from '../../../core/services/group.service';
 import { GroupResponse } from '../../../shared/models/group.models';
 import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-group-detail',
@@ -19,7 +20,9 @@ import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
             <p class="text-muted-foreground mt-1">Detalhes do grupo</p>
           </div>
           <div class="flex gap-2">
-            <a [routerLink]="['/groups', g.id, 'edit']" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-primary/30 text-primary hover:bg-primary/10 transition-colors">Editar</a>
+            @if (canEdit()) {
+              <a [routerLink]="['/groups', g.id, 'edit']" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-primary/30 text-primary hover:bg-primary/10 transition-colors">Editar</a>
+            }
             <a routerLink="/groups" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">Voltar</a>
           </div>
         </div>
@@ -59,7 +62,13 @@ import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
 export class GroupDetailComponent {
   private groupService = inject(GroupService);
   private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
   group = signal<GroupResponse | null>(null);
+
+  canEdit = computed(() => {
+    const role = this.authService.getUserRole();
+    return role === 'ADMIN' || role === 'LEADER';
+  });
 
   constructor() {
     const id = +this.route.snapshot.paramMap.get('id')!;
