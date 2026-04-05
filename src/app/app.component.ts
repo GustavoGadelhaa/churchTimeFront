@@ -58,6 +58,6 @@ export class AppComponent {
 
   isAuthPage(): boolean {
     const url = this.router.url;
-    return url === '/login' || url === '/register' || url === '/forgot-password';
+    return url === '/login' || url === '/register' || url === '/forgot-password' || url === '/reset-password' || url === '/password-reset-success';
   }
 }

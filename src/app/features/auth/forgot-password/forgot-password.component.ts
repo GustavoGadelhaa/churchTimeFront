@@ -1,7 +1,7 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -18,7 +18,7 @@ import { AuthService } from '../../../core/services/auth.service';
               <span class="material-icons text-primary-foreground text-4xl">lock_reset</span>
             </div>
             <h1 class="text-2xl font-bold text-foreground">Recuperar Senha</h1>
-            <p class="text-muted-foreground mt-1">Informe seu e-mail para receber instruções</p>
+            <p class="text-muted-foreground mt-1">Informe seu e-mail para receber um código de 6 dígitos</p>
           </div>
 
           <form [formGroup]="form" (ngSubmit)="onSubmit()">
@@ -32,7 +32,10 @@ import { AuthService } from '../../../core/services/auth.service';
                 [class.border-destructive]="email?.invalid && email?.touched"
               />
               @if (email?.invalid && email?.touched) {
-                <p class="text-sm text-destructive mt-1">E-mail inválido</p>
+                <p class="text-sm text-destructive mt-1">
+                  @if (email?.errors?.['required']) { E-mail é obrigatório }
+                  @if (email?.errors?.['email']) { E-mail inválido }
+                </p>
               }
             </div>
 
@@ -44,7 +47,7 @@ import { AuthService } from '../../../core/services/auth.service';
 
             @if (success()) {
               <div class="p-3 rounded-lg bg-green-500/10 border border-green-500/30 mt-4">
-                <p class="text-sm text-green-500">Instruções enviadas para seu e-mail!</p>
+                <p class="text-sm text-green-500 font-medium">Código enviado! Verifique seu e-mail.</p>
               </div>
             }
 
@@ -57,7 +60,7 @@ import { AuthService } from '../../../core/services/auth.service';
                 <div class="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2"></div>
                 Enviando...
               } @else {
-                Enviar Instruções
+                Enviar código
               }
             </button>
           </form>
@@ -74,6 +77,7 @@ import { AuthService } from '../../../core/services/auth.service';
 export class ForgotPasswordComponent {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
+  private router = inject(Router);
 
   form = this.fb.group({
     email: ['', [Validators.required, Validators.email]]
@@ -94,6 +98,7 @@ export class ForgotPasswordComponent {
       next: () => {
         this.loading = false;
         this.success.set(true);
+        setTimeout(() => this.router.navigate(['/reset-password']), 2000);
       },
       error: () => {
         this.loading = false;
