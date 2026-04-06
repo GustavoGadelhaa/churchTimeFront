@@ -48,7 +48,8 @@ export const routes: Routes = [
         children: [
           { path: '', loadComponent: () => import('./features/groups/group-list/group-list.component').then(m => m.GroupListComponent) },
           { path: 'new', canActivate: [roleGuard], data: { roles: ['ADMIN', 'LEADER'] }, loadComponent: () => import('./features/groups/group-form/group-form.component').then(m => m.GroupFormComponent) },
-          { path: ':id', loadComponent: () => import('./features/groups/group-detail/group-detail.component').then(m => m.GroupDetailComponent) }
+          { path: ':id', loadComponent: () => import('./features/groups/group-detail/group-detail.component').then(m => m.GroupDetailComponent) },
+          { path: ':id/users', loadComponent: () => import('./features/groups/group-users/group-users.component').then(m => m.GroupUsersComponent) }
         ]
       },
       {

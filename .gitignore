@@ -20,6 +20,8 @@ Thumbs.db
 
 # Environment files with secrets
 src/environments/environment.local.ts
+.env
+.env.*
 
 # Logs
 npm-debug.log*
@@ -34,3 +36,17 @@ lerna-debug.log*
 # Editor temp files
 *.code-workspace
 .cache/
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
