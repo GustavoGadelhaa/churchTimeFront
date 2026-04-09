@@ -132,6 +132,23 @@ import { of } from 'rxjs';
         </div>
       }
 
+      @if (noGroup()) {
+        <div class="rounded-2xl border-2 border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 p-8 shadow-lg relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-48 h-48 bg-yellow-500/5 rounded-full -translate-y-24 translate-x-24"></div>
+          <div class="absolute bottom-0 left-0 w-32 h-32 bg-yellow-500/5 rounded-full translate-y-16 -translate-x-16"></div>
+          <div class="relative flex items-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center shadow-inner">
+              <span class="material-icons text-3xl text-yellow-500">groups</span>
+            </div>
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded-full inline-block">Sem Grupo</p>
+              <h2 class="text-xl font-bold text-foreground mt-1">{{ noGroupName() }}</h2>
+              <p class="text-sm text-muted-foreground mt-1">Você ainda não está associado a um grupo.</p>
+            </div>
+          </div>
+        </div>
+      }
+
       @if (loading()) {
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           @for (_ of [1,2,3,4]; track _) {
@@ -171,7 +188,7 @@ import { of } from 'rxjs';
         </div>
       }
 
-      @if (!loading() && !error()) {
+      @if (!loading() && !error() && !noGroup()) {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div class="rounded-lg border border-border bg-card p-6">
             <h2 class="text-lg font-semibold text-foreground mb-4">Ações Rápidas</h2>
@@ -242,6 +259,9 @@ export class DashboardComponent implements OnInit {
 
   loading = signal(true);
   error = signal<string | null>(null);
+  noGroup = signal(false);
+  noGroupName = signal('');
+  noGroupMembers = signal(0);
 
   myGroupLoading = signal(true);
   myGroupError = signal(false);
@@ -332,31 +352,38 @@ export class DashboardComponent implements OnInit {
       )
       .subscribe((stats) => {
         if (stats) {
+          if (stats.message && stats.message.includes('sem grupo')) {
+            this.noGroup.set(true);
+            this.noGroupName.set(stats.test?.name || '');
+            this.noGroupMembers.set(stats.test?.members || 0);
+            this.loading.set(false);
+            return;
+          }
           this.cards.set([
             {
               label: 'Total de Grupos',
-              value: stats.totalGroups.toString(),
+              value: (stats.totalGroups ?? 0).toString(),
               footer: 'Células e ministérios',
               icon: 'groups',
               bgClass: 'bg-primary/15 text-primary'
             },
             {
               label: 'Eventos Abertos',
-              value: stats.openEvents.toString(),
+              value: (stats.openEvents ?? 0).toString(),
               footer: 'Prontos para check-in',
               icon: 'event',
               bgClass: 'bg-green-500/15 text-green-500'
             },
             {
               label: 'Membros Ativos',
-              value: stats.activeMembers.toString(),
+              value: (stats.activeMembers ?? 0).toString(),
               footer: 'Cadastrados no sistema',
               icon: 'people',
               bgClass: 'bg-primary/15 text-primary'
             },
             {
               label: 'Presenças Hoje',
-              value: stats.todayCheckins.toString(),
+              value: (stats.todayCheckins ?? 0).toString(),
               footer: 'Check-ins realizados',
               icon: 'check_circle',
               bgClass: 'bg-yellow-500/15 text-yellow-500'

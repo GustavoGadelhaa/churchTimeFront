@@ -41,4 +41,8 @@ export class UserService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
+
+  removeFromGroup(groupId: number, userId: number): Observable<void> {
+    return this.http.delete<void>(`${environment.apiUrl}/groups/${groupId}/users/${userId}`);
+  }
 }

@@ -181,13 +181,14 @@ export class GroupUsersComponent implements OnInit {
     const user = this.userToDelete();
     if (!user) return;
 
-    this.userService.delete(user.id).subscribe({
+    this.userService.removeFromGroup(this.groupId, user.id).subscribe({
       next: () => {
         this.users.update(users => users.filter(u => u.id !== user.id));
         this.closeDialog();
       },
-      error: () => {
-        this.error.set('Erro ao remover membro. Tente novamente.');
+      error: (err) => {
+        const msg = err?.error?.message || 'Erro ao remover membro. Tente novamente.';
+        this.error.set(msg);
         this.closeDialog();
       }
     });
