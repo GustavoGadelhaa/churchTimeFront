@@ -1,14 +1,90 @@
 import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { ReactiveFormsModule, FormBuilder, Validators, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { EventService } from '../../../core/services/event.service';
 import { EventStatus } from '../../../shared/models/event.models';
+import { DatePickerComponent } from '../../../shared/components/date-picker/date-picker.component';
+
+@Component({
+  selector: 'app-time-picker',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="w-full">
+      <label class="text-sm font-medium text-foreground mb-1.5 block">Horário</label>
+      <div class="flex items-center gap-1">
+        <select
+          [value]="hour()"
+          (change)="setHour($event)"
+          class="flex h-10 w-16 rounded-md border border-input bg-background px-2 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          @for (h of hours; track h) {
+            <option [value]="h">{{ h.toString().padStart(2, '0') }}</option>
+          }
+        </select>
+        <span class="text-muted-foreground">:</span>
+        <select
+          [value]="minute()"
+          (change)="setMinute($event)"
+          class="flex h-10 w-16 rounded-md border border-input bg-background px-2 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          @for (m of minutes; track m) {
+            <option [value]="m">{{ m.toString().padStart(2, '0') }}</option>
+          }
+        </select>
+      </div>
+    </div>
+  `
+})
+export class TimePickerComponent implements ControlValueAccessor {
+  hours = Array.from({ length: 24 }, (_, i) => i);
+  minutes = [0, 15, 30, 45];
+  
+  hour = signal(0);
+  minute = signal(0);
+
+  private onChange: any;
+  private onTouched: any;
+
+  setHour(event: Event): void {
+    const value = +(event.target as HTMLSelectElement).value;
+    this.hour.set(value);
+    this.notifyChange();
+  }
+
+  setMinute(event: Event): void {
+    const value = +(event.target as HTMLSelectElement).value;
+    this.minute.set(value);
+    this.notifyChange();
+  }
+
+  private notifyChange(): void {
+    if (this.onChange) {
+      this.onChange({ hour: this.hour(), minute: this.minute() });
+    }
+  }
+
+  writeValue(value: { hour: number; minute: number } | null): void {
+    if (value) {
+      this.hour.set(value.hour);
+      this.minute.set(value.minute);
+    }
+  }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+    this.onTouched = fn;
+  }
+}
 
 @Component({
   selector: 'app-event-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink, DatePickerComponent, TimePickerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6 max-w-lg">
@@ -49,17 +125,9 @@ import { EventStatus } from '../../../shared/models/event.models';
               />
             </div>
 
-            <div>
-              <label class="text-sm font-medium text-foreground mb-1.5 block">Data e Hora</label>
-              <input
-                type="datetime-local"
-                formControlName="eventDate"
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                [class.border-destructive]="eventDate?.invalid && eventDate?.touched"
-              />
-              @if (eventDate?.invalid && eventDate?.touched) {
-                <p class="text-sm text-destructive mt-1">Data é obrigatória</p>
-              }
+            <div class="grid grid-cols-2 gap-4">
+              <app-date-picker formControlName="eventDate"></app-date-picker>
+              <app-time-picker formControlName="eventTime"></app-time-picker>
             </div>
 
             <div>
@@ -110,7 +178,8 @@ export class EventFormComponent {
   form = this.fb.group({
     title: ['', [Validators.required, Validators.minLength(3)]],
     location: [''],
-    eventDate: ['', [Validators.required]],
+    eventDate: [null as Date | null, [Validators.required]],
+    eventTime: [{ hour: 0, minute: 0 }],
     status: ['SCHEDULED' as EventStatus]
   });
 
@@ -130,11 +199,11 @@ export class EventFormComponent {
       this.eventService.getById(this.eventId).subscribe({
         next: (event) => {
           const date = new Date(event.eventDate);
-          const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
           this.form.patchValue({
             title: event.title,
             location: event.location,
-            eventDate: local.toISOString().slice(0, 16),
+            eventDate: date,
+            eventTime: { hour: date.getHours(), minute: date.getMinutes() },
             status: event.status
           });
         }
@@ -147,8 +216,26 @@ export class EventFormComponent {
     this.loading = true;
     this.error.set('');
 
-    const { title, location, eventDate, status } = this.form.value;
-    const body = { title: title!, location: location || undefined, eventDate: eventDate!, status: status as EventStatus };
+    const { title, location, eventDate, eventTime, status } = this.form.value;
+    
+    const dateObj = eventDate as Date;
+    const timeObj = eventTime as { hour: number; minute: number };
+    
+    const finalDate = new Date(
+      dateObj.getFullYear(),
+      dateObj.getMonth(),
+      dateObj.getDate(),
+      timeObj.hour,
+      timeObj.minute
+    );
+    
+    const body = { 
+      title: title!, 
+      location: location || undefined, 
+      eventDate: finalDate.toISOString(), 
+      status: status as EventStatus 
+    };
+    
     const obs = this.isEdit()
       ? this.eventService.update(this.eventId!, body)
       : this.eventService.create(1, body);

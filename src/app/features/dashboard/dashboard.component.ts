@@ -37,22 +37,7 @@ import { of } from 'rxjs';
         </div>
       }
 
-      @if (isLeader() && myGroupLoading()) {
-        <div class="rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 shadow-lg animate-pulse">
-          <div class="flex items-center gap-4 mb-6">
-            <div class="w-14 h-14 rounded-xl bg-primary/20"></div>
-            <div class="space-y-2">
-              <div class="h-7 w-48 bg-primary/20 rounded"></div>
-              <div class="h-4 w-32 bg-primary/15 rounded"></div>
-            </div>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            @for (_ of [1,2,3,4]; track _) {
-              <div class="h-20 bg-primary/10 rounded-xl"></div>
-            }
-          </div>
-        </div>
-      } @else if (isLeader() && myGroup()) {
+      @if (myGroup() && !myGroupLoading()) {
         <div class="rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-8 shadow-lg relative overflow-hidden">
           <div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-32 translate-x-32"></div>
           <div class="absolute bottom-0 left-0 w-48 h-48 bg-primary/5 rounded-full translate-y-24 -translate-x-24"></div>
@@ -65,7 +50,7 @@ import { of } from 'rxjs';
                 </div>
                 <div>
                   <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">Líder</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-full">{{ isLeader() ? 'Líder' : 'Membro' }}</span>
                   </div>
                   <h2 class="text-2xl font-bold text-foreground mt-1">{{ myGroup()!.name }}</h2>
                   @if (myGroup()!.description) {
@@ -73,16 +58,18 @@ import { of } from 'rxjs';
                   }
                 </div>
               </div>
-              <div class="flex gap-2">
-                <a [routerLink]="['/groups', myGroup()!.id, 'users']" class="inline-flex items-center gap-2 rounded-lg text-sm font-medium h-10 px-4 py-2 bg-primary/15 text-primary hover:bg-primary/25 transition-colors">
-                  <span class="material-icons text-lg">people</span>
-                  Membros
-                </a>
-                <a [routerLink]="['/groups', myGroup()!.id]" class="inline-flex items-center gap-2 rounded-lg text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md">
-                  Ver detalhes
-                  <span class="material-icons text-lg">arrow_forward</span>
-                </a>
-              </div>
+              @if (isLeader()) {
+                <div class="flex gap-2">
+                  <a [routerLink]="['/groups', myGroup()!.id, 'users']" class="inline-flex items-center gap-2 rounded-lg text-sm font-medium h-10 px-4 py-2 bg-primary/15 text-primary hover:bg-primary/25 transition-colors">
+                    <span class="material-icons text-lg">people</span>
+                    Membros
+                  </a>
+                  <a [routerLink]="['/groups', myGroup()!.id]" class="inline-flex items-center gap-2 rounded-lg text-sm font-medium h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-md">
+                    Ver detalhes
+                    <span class="material-icons text-lg">arrow_forward</span>
+                  </a>
+                </div>
+              }
             </div>
 
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -118,7 +105,7 @@ import { of } from 'rxjs';
             </div>
           </div>
         </div>
-      } @else if (isLeader() && myGroupError()) {
+      } @else if (myGroupError()) {
         <div class="rounded-2xl border-2 border-yellow-500/30 bg-gradient-to-br from-yellow-500/10 to-yellow-500/5 p-8">
           <div class="flex items-center gap-4">
             <div class="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center">
@@ -150,6 +137,26 @@ import { of } from 'rxjs';
       }
 
       @if (loading()) {
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          @for (_ of [1,2,3,4]; track _) {
+            <div class="rounded-lg border border-border bg-card p-6 animate-pulse">
+              <div class="flex items-center justify-between">
+                <div class="space-y-2">
+                  <div class="h-4 w-24 bg-muted rounded"></div>
+                  <div class="h-8 w-16 bg-muted rounded"></div>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-muted"></div>
+              </div>
+              <div class="h-3 w-32 bg-muted rounded mt-3"></div>
+            </div>
+          }
+        </div>
+      } @else if (error()) {
+        <div class="rounded-lg border border-red-500/20 bg-red-500/5 p-6 text-center">
+          <p class="text-red-500">{{ error() }}</p>
+          <button (click)="loadStats()" class="mt-3 text-sm text-primary hover:underline">Tentar novamente</button>
+        </div>
+      } @else if (loading()) {
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           @for (_ of [1,2,3,4]; track _) {
             <div class="rounded-lg border border-border bg-card p-6 animate-pulse">
@@ -314,9 +321,7 @@ export class DashboardComponent implements OnInit {
     this.isLeader.set(this.authService.getUserRole() === 'LEADER');
     this.loadUserData();
     this.loadStats();
-    if (this.isLeader()) {
-      this.loadMyGroup();
-    }
+    this.loadMyGroup();
   }
 
   loadUserData() {
