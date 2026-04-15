@@ -1,9 +1,11 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { EventService } from '../../../core/services/event.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { EventResponse, EventStatus } from '../../../shared/models/event.models';
 import { DateFormatPipe } from '../../../shared/pipes/date-format.pipe';
+import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 const statusConfig: Record<EventStatus, { label: string; bg: string; text: string }> = {
   SCHEDULED: { label: 'Agendado', bg: 'bg-blue-500/15', text: 'text-blue-500' },
@@ -14,7 +16,7 @@ const statusConfig: Record<EventStatus, { label: string; bg: string; text: strin
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, DateFormatPipe],
+  imports: [CommonModule, RouterLink, DateFormatPipe, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="space-y-6 max-w-2xl">
@@ -25,6 +27,12 @@ const statusConfig: Record<EventStatus, { label: string; bg: string; text: strin
             <p class="text-muted-foreground mt-1">Detalhes do evento</p>
           </div>
           <div class="flex gap-2">
+            @if (canDelete()) {
+              <button (click)="openDeleteDialog(e)" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-border bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors">
+                <span class="material-icons text-sm mr-1.5">delete</span>
+                Excluir
+              </button>
+            }
             <a [routerLink]="['/events', e.id, 'edit']" class="inline-flex items-center justify-center rounded-md text-sm font-medium h-10 px-4 py-2 border border-border bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
               <span class="material-icons text-sm mr-1.5">edit</span>
               Editar
@@ -76,19 +84,63 @@ const statusConfig: Record<EventStatus, { label: string; bg: string; text: strin
           <div class="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
         </div>
       }
+
+      @if (confirmDialog()) {
+        <app-confirm-dialog
+          [data]="confirmDialog()!"
+          (confirm)="confirmDelete()"
+          (cancel)="closeDialog()"
+        />
+      }
     </div>
   `
 })
 export class EventDetailComponent {
   private eventService = inject(EventService);
+  private authService = inject(AuthService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
+
   event = signal<EventResponse | null>(null);
   statusConfig = statusConfig;
+  confirmDialog = signal<ConfirmDialogData | null>(null);
+
+  canDelete = computed(() => {
+    const role = this.authService.getUserRole();
+    return role === 'ADMIN' || role === 'LEADER';
+  });
 
   constructor() {
     const id = +this.route.snapshot.paramMap.get('id')!;
     this.eventService.getById(id).subscribe({
       next: (data) => this.event.set(data)
     });
+  }
+
+  openDeleteDialog(event: EventResponse): void {
+    this.confirmDialog.set({
+      title: 'Excluir Evento',
+      message: `Tem certeza que deseja excluir o evento "${event.title}"? Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir'
+    });
+  }
+
+  confirmDelete(): void {
+    const event = this.event();
+    if (!event) return;
+
+    this.eventService.delete(event.id).subscribe({
+      next: () => {
+        this.closeDialog();
+        this.router.navigate(['/events']);
+      },
+      error: () => {
+        this.closeDialog();
+      }
+    });
+  }
+
+  closeDialog(): void {
+    this.confirmDialog.set(null);
   }
 }
